@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import InputForm from './components/InputForm'
 import PlanDisplay from './components/PlanDisplay'
+import { predictFitness, generatePlan } from './utils/aiLogic';
 
 function App() {
   const [step, setStep] = useState('input') // input, loading, result
@@ -22,39 +23,37 @@ function App() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
+  /* 
+    Updated for GitHub Pages Deployment:
+    Since GitHub Pages is static, we cannot use the Python Flask backend.
+    We have moved the logic to the client-side (browser) so the app works fully online without a server.
+  */
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setStep('loading')
-    try {
-      const bmi = parseFloat(formData.weight) / ((parseFloat(formData.height) / 100) ** 2)
 
-      // Predict Fitness Level
-      const response = await fetch('http://localhost:5000/api/predict-fitness', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          age: parseInt(formData.age),
-          bmi: bmi,
-          activity_level: parseInt(formData.activityLevel)
-        })
-      })
-      const fitnessData = await response.json()
+    // Simulate AI processing delay
+    setTimeout(() => {
+      try {
+        const bmi = parseFloat(formData.weight) / ((parseFloat(formData.height) / 100) ** 2)
+        const activityLevel = parseInt(formData.activityLevel)
 
-      // Generate Plan
-      const planResponse = await fetch('http://localhost:5000/api/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, fitness_level: fitnessData.fitness_level })
-      })
-      const planResult = await planResponse.json()
+        // 1. Predict Fitness (Client-side)
+        const fitnessLevel = predictFitness(parseInt(formData.age), bmi, activityLevel)
 
-      setPlan({ ...planResult, fitness_level: fitnessData.fitness_level })
-      setStep('result')
-    } catch (err) {
-      console.error(err)
-      alert('Failed to connect to backend. Make sure the Flask server is running on port 5000!')
-      setStep('input')
-    }
+        // 2. Generate Plan (Client-side)
+        const planResult = generatePlan(fitnessLevel, formData)
+
+        setPlan({ ...planResult, fitness_level: fitnessLevel })
+        setStep('result')
+
+      } catch (err) {
+        console.error(err)
+        alert('An error occurred during plan generation.')
+        setStep('input')
+      }
+    }, 1500) // 1.5s delay
   }
 
   return (
