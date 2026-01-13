@@ -23,37 +23,54 @@ function App() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  /* 
-    Updated for GitHub Pages Deployment:
-    Since GitHub Pages is static, we cannot use the Python Flask backend.
-    We have moved the logic to the client-side (browser) so the app works fully online without a server.
-  */
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setStep('loading')
 
-    // Simulate AI processing delay
-    setTimeout(() => {
-      try {
-        const bmi = parseFloat(formData.weight) / ((parseFloat(formData.height) / 100) ** 2)
-        const activityLevel = parseInt(formData.activityLevel)
+    // Get API URL from environment variable or default to localhost
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    console.log("Using API URL:", API_URL);
 
-        // 1. Predict Fitness (Client-side)
-        const fitnessLevel = predictFitness(parseInt(formData.age), bmi, activityLevel)
+    try {
+      const bmi = parseFloat(formData.weight) / ((parseFloat(formData.height) / 100) ** 2)
 
-        // 2. Generate Plan (Client-side)
-        const planResult = generatePlan(fitnessLevel, formData)
+      // Predict Fitness Level
+      const response = await fetch(`${API_URL}/api/predict-fitness`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          age: parseInt(formData.age),
+          bmi: bmi,
+          activity_level: parseInt(formData.activityLevel)
+        })
+      })
 
-        setPlan({ ...planResult, fitness_level: fitnessLevel })
-        setStep('result')
-
-      } catch (err) {
-        console.error(err)
-        alert('An error occurred during plan generation.')
-        setStep('input')
+      if (!response.ok) {
+        throw new Error('Backend connection failed');
       }
-    }, 1500) // 1.5s delay
+
+      const fitnessData = await response.json()
+
+      // Generate Plan
+      const planResponse = await fetch(`${API_URL}/api/generate-plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, fitness_level: fitnessData.fitness_level })
+      })
+
+      if (!planResponse.ok) {
+        throw new Error('Plan generation failed');
+      }
+
+      const planResult = await planResponse.json()
+
+      setPlan({ ...planResult, fitness_level: fitnessData.fitness_level })
+      setStep('result')
+    } catch (err) {
+      console.error(err)
+      alert(`Failed to connect to backend (${API_URL}). Please check if the backend is running.`)
+      setStep('input')
+    }
   }
 
   return (
