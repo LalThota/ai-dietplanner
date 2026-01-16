@@ -151,6 +151,102 @@ def generate_plan():
         "diet_plan": diet_plan
     })
 
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """
+    Enhanced rule-based chatbot for fitness & diet queries.
+    """
+    data = request.json
+    message = data.get('message', '').lower()
+    
+    # Knowledge Base
+    responses = {
+        # Nutrition & Macros
+        "protein": "Protein is essential for muscle repair and growth. Good sources include: Chicken breast, Eggs, Greek Yogurt, Lentils, Cottage Cheese (Paneer), and Soya chunks.",
+        "carbs": "Carbohydrates are your body's main energy source. Focus on complex carbs like Oats, Brown Rice, Quinoa, Sweet Potatoes, and Whole Wheat.",
+        "fats": "Healthy fats supports hormone health. Include Nuts (Almonds, Walnuts), Seeds (Chia, Flax), Olive Oil, and Avocados in moderation.",
+        "fiber": "Fiber aids digestion and keeps you full. Eat plenty of Vegetables, Fruits (Apples, Berries), and Whole Grains.",
+        "hydration": "Water is crucial for performance. Aim for 3-4 liters daily. Drink more if you exercise heavily or it's hot.",
+        "vitamins": "Eat a rainbow of vegetables to get all necessary vitamins. Spinach, Carrots, Bell Peppers, and Citrus fruits are great choices.",
+
+        # Specific Foods
+        "egg": "One large egg contains about 6g of protein and healthy fats. It's a gold standard protein source.",
+        "chicken": "Chicken breast is a lean protein powerhouse. 100g yields about 31g of protein with very little fat.",
+        "rice": "Rice is a good carb source for energy. White rice is fast-digesting (good post-workout), brown rice is slower (good for sustained energy).",
+        "milk": "Milk is great for hydration and protein (casein & whey). 1 cup has ~8g protein. Choose low-fat if cutting calories.",
+        "banana": "Bananas are excellent pre-workout fuel. They provide potassium and fast-acting carbs for energy.",
+        "oats": "Oats are a fantastic slow-digesting carb. They keep you full and provide sustained energy for workouts.",
+
+        # Workouts & Exercises
+        "workout": "Consistency beats intensity! For beginners, 3 days of full-body strength training is ideal. Advanced lifters can try a Push-Pull-Legs split.",
+        "abs": "Abs are made in the kitchen! You need low body fat to see them. Plank, Leg Raises, and Russian Twists strengthen the core.",
+        "cardio": "Cardio improves heart health and burns calories. Try 150 mins of moderate activity (brisk walk) or 75 mins vigorous (running) per week.",
+        "muscle": "To build muscle, lift heavy enough to challenge yourself (hypertrophy range: 8-12 reps) and eat a slight calorie surplus.",
+        "squat": "Squats are the king of leg exercises. Keep your back straight, chest up, and drive through your heels. Depth matters!",
+        "pushup": "Pushups build chest, shoulders, and triceps. Keep your body in a straight line. If too hard, start on your knees.",
+
+        # Goals
+        "weight loss": "To lose weight, you must be in a calorie deficit (burning more than you eat). Prioritize protein and veggies to stay full.",
+        "fat loss": "Fat loss comes from a proper diet + exercise. Strength training helps preserve muscle while you lose fat.",
+        "gain": "To gain weight/muscle, eat in a surplus (300-500 kcal above maintenance). Focus on nutrient-dense foods, not just junk.",
+        "maintenance": "Maintenance is eating enough to keep your weight stable. It's great for diet breaks or when you're happy with your physique.",
+
+        # General
+        "hello": "Hi there! I'm your StudentFit AI assistant. Ask me about foods, exercises, or your fitness goals!",
+        "hi": "Hello! Ready to get fit? Ask me anything about your diet or workout plan.",
+        "thank": "You're welcome! Keep crushing your goals!",
+        "help": "I can help with nutrition info, workout tips, or motivation. Try asking 'What should I eat?' or 'How to do pushups?'"
+    }
+
+    # Intelligent Matching
+    response = "I'm not sure about that specific detail yet, but I'm learning! Try asking about specific foods (like 'eggs', 'rice'), nutrients ('protein', 'carbs'), or goals ('weight loss', 'muscle')."
+    
+    # Check for direct keyword matches
+    for key, reply in responses.items():
+        if key in message:
+            response = reply
+            break
+            
+    # Contextual fallbacks if no direct match
+    if response.startswith("I'm not sure"):
+        if "eat" in message or "food" in message or "diet" in message:
+            response = "For a balanced diet, aim for a plate with 1/2 vegetables, 1/4 lean protein, and 1/4 complex carbs. Avoid processed sugars!"
+        elif "exercise" in message or "gym" in message or "train" in message:
+            response = "Any movement is good movement! Start with a routine you truly enjoy so you can stick to it long-term."
+        elif "sleep" in message or "rest" in message:
+            response = "Sleep is when your muscles grow! Aim for 7-9 hours of quality sleep every night for best results."
+
+    return jsonify({"response": response})
+
+@app.route('/api/analyze-food', methods=['POST'])
+def analyze_food():
+    """
+    Mock AI Food analyzer.
+    In a real app, this would use Google Gemini Pro Vision or similar.
+    """
+    # For now, we return a random analysis
+    return jsonify({
+        "food_item": "Detected Food",
+        "calories": 250,
+        "protein": "15g",
+        "carbs": "30g",
+        "fats": "8g",
+        "vitamins": "Vitamin C, B12"
+    })
+
+@app.route('/api/export-plan', methods=['POST'])
+def export_plan():
+    """
+    Return the plan as a downloadable string/file content.
+    """
+    data = request.json
+    workout = data.get('workout_plan', '')
+    diet = data.get('diet_plan', '')
+    
+    full_plan = f"STUDENTFIT AI - YOUR CUSTOM PLAN\n\nWORKOUT PLAN:\n{workout}\n\nDIET PLAN:\n{diet}"
+    
+    return jsonify({"file_content": full_plan, "filename": "My_StudentFit_Plan.txt"})
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
